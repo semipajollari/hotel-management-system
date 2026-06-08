@@ -82,7 +82,21 @@ export default function BookingsPage() {
 
   async function handleCancel(id: string) {
     if (!confirm("Cancel this booking?")) return;
-    const res = await fetch(`/api/bookings/${id}`, { method: "PATCH" });
+    const res = await fetch(`/api/bookings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "cancel" }),
+    });
+    if (res.ok) await fetchAll();
+  }
+
+  async function handleCheckout(id: string) {
+    if (!confirm("Check out this guest?")) return;
+    const res = await fetch(`/api/bookings/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ action: "checkout" }),
+    });
     if (res.ok) await fetchAll();
   }
 
@@ -131,9 +145,14 @@ export default function BookingsPage() {
                   </td>
                   <td className="px-4 py-3">
                     {b.status === "active" && (
-                      <button onClick={() => handleCancel(b._id)} className="text-red-500 hover:text-red-700 text-xs font-medium">
-                        Cancel
-                      </button>
+                      <div className="flex gap-3">
+                        <button onClick={() => handleCheckout(b._id)} className="text-green-600 hover:text-green-800 text-xs font-medium">
+                          Check Out
+                        </button>
+                        <button onClick={() => handleCancel(b._id)} className="text-red-500 hover:text-red-700 text-xs font-medium">
+                          Cancel
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>

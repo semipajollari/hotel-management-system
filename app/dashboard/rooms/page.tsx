@@ -32,6 +32,7 @@ export default function RoomsPage() {
   const [form, setForm] = useState(EMPTY);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+  const [filter, setFilter] = useState("all");
 
   async function fetchRooms() {
     const res = await fetch("/api/rooms");
@@ -102,11 +103,28 @@ export default function RoomsPage() {
         }
       />
 
+      {/* Filter buttons */}
+      <div className="flex gap-2 mb-4">
+        {["all", "available", "occupied", "maintenance"].map((s) => (
+          <button
+            key={s}
+            onClick={() => setFilter(s)}
+            className={`px-3 py-1.5 text-sm rounded-lg font-medium capitalize transition-colors ${
+              filter === s
+                ? "bg-blue-600 text-white"
+                : "bg-white border border-gray-200 text-gray-600 hover:bg-gray-50"
+            }`}
+          >
+            {s}
+          </button>
+        ))}
+      </div>
+
       <div className="card overflow-hidden">
         {loading ? (
           <div className="p-8 text-center text-gray-400">Loading...</div>
-        ) : rooms.length === 0 ? (
-          <div className="p-8 text-center text-gray-400">No rooms yet.</div>
+        ) : rooms.filter(r => filter === "all" || r.status === filter).length === 0 ? (
+          <div className="p-8 text-center text-gray-400">No rooms found.</div>
         ) : (
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
@@ -117,7 +135,7 @@ export default function RoomsPage() {
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
-              {rooms.map((room) => (
+              {rooms.filter(r => filter === "all" || r.status === filter).map((room) => (
                 <tr key={room._id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-4 py-3 font-medium text-gray-900">{room.number}</td>
                   <td className="px-4 py-3 capitalize text-gray-600">{room.type}</td>
