@@ -247,11 +247,19 @@ export default function BillsPage() {
                 </tr>
               </tfoot>
             </table>
-            {detailBill.status === "open" && isManager && (
-              <div className="flex justify-end">
-                <button className="btn-primary" onClick={() => markPaid(detailBill._id)}>Mark as Paid</button>
-              </div>
-            )}
+            <div className="flex justify-between items-center">
+              <button
+                className="btn-secondary"
+                onClick={() => window.print()}
+              >
+                Print Bill
+              </button>
+              {detailBill.status === "open" && isManager && (
+                <button className="btn-primary" onClick={() => markPaid(detailBill._id)}>
+                  Mark as Paid
+                </button>
+              )}
+            </div>
           </div>
         )}
       </Modal>
