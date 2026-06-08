@@ -23,34 +23,45 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await connectDB();
-  const body = await req.json();
-  const { clientId, roomId, checkIn, checkOut, notes } = body;
+  try {
+    await connectDB();
+    const body = await req.json();
+    const { clientId, roomId, checkIn, checkOut, notes } = body;
 
-  const room = await Room.findById(roomId);
-  if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
-  if (room.status !== "available") return NextResponse.json({ error: "Room is not available" }, { status: 400 });
+    if (!clientId || !roomId || !checkIn || !checkOut) {
+      return NextResponse.json({ error: "Missing required fields." }, { status: 400 });
+    }
 
-  const nights = calculateNights(new Date(checkIn), new Date(checkOut));
-  const totalPrice = nights * room.price;
+    const room = await Room.findById(roomId);
+    if (!room) return NextResponse.json({ error: "Room not found" }, { status: 404 });
+    if (room.status !== "available") return NextResponse.json({ error: "Room is not available" }, { status: 400 });
 
-  const booking = await Booking.create({
-    client: clientId,
-    room: roomId,
-    checkIn,
-    checkOut,
-    totalPrice,
-    notes,
-    createdBy: (session.user as any).id || (session as any).user?.sub,
-    status: "active",
-  });
+    const nights = calculateNights(new Date(checkIn), new Date(checkOut));
+    if (nights <= 0) return NextResponse.json({ error: "Check-out must be after check-in." }, { status: 400 });
 
-  // Mark room as occupied
-  await Room.findByIdAndUpdate(roomId, { status: "occupied" });
+    const totalPrice = nights * room.price;
+    const createdBy = (session.user as any).id || (session as any).sub;
 
-  const populated = await booking.populate([
-    { path: "client", select: "firstName lastName email" },
-    { path: "room", select: "number type price" },
-  ]);
-  return NextResponse.json(populated, { status: 201 });
+    const booking = await Booking.create({
+      client: clientId,
+      room: roomId,
+      checkIn,
+      checkOut,
+      totalPrice,
+      notes,
+      createdBy,
+      status: "active",
+    });
+
+    await Room.findByIdAndUpdate(roomId, { status: "occupied" });
+
+    const populated = await booking.populate([
+      { path: "client", select: "firstName lastName email" },
+      { path: "room", select: "number type price" },
+    ]);
+    return NextResponse.json(populated, { status: 201 });
+  } catch (err: any) {
+    console.error("Booking POST error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  }
 }

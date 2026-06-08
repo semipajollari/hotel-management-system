@@ -20,8 +20,13 @@ export async function POST(req: NextRequest) {
   const role = (session.user as any).role;
   if (role !== "hotel_manager") return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  await connectDB();
-  const body = await req.json();
-  const room = await Room.create(body);
-  return NextResponse.json(room, { status: 201 });
+  try {
+    await connectDB();
+    const body = await req.json();
+    const room = await Room.create(body);
+    return NextResponse.json(room, { status: 201 });
+  } catch (err: any) {
+    console.error("Room POST error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  }
 }

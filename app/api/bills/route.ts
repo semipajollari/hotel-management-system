@@ -23,18 +23,24 @@ export async function POST(req: NextRequest) {
   const session = await getServerSession(authOptions);
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  await connectDB();
-  const body = await req.json();
-  const total = body.items.reduce(
-    (sum: number, item: { quantity: number; price: number }) => sum + item.quantity * item.price,
-    0
-  );
-
-  const bill = await Bill.create({
-    ...body,
-    total,
-    createdBy: (session.user as any).id,
-  });
-
-  return NextResponse.json(bill, { status: 201 });
+  try {
+    await connectDB();
+    const body = await req.json();
+    if (!body.items || body.items.length === 0) {
+      return NextResponse.json({ error: "Bill must have at least one item." }, { status: 400 });
+    }
+    const total = body.items.reduce(
+      (sum: number, item: { quantity: number; price: number }) => sum + item.quantity * item.price,
+      0
+    );
+    const bill = await Bill.create({
+      ...body,
+      total,
+      createdBy: (session.user as any).id,
+    });
+    return NextResponse.json(bill, { status: 201 });
+  } catch (err: any) {
+    console.error("Bill POST error:", err);
+    return NextResponse.json({ error: err.message || "Internal server error" }, { status: 500 });
+  }
 }
