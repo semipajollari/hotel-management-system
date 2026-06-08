@@ -4,8 +4,6 @@ import User from "@/models/User";
 import Room from "@/models/Room";
 import Client from "@/models/Client";
 import Product from "@/models/Product";
-import bcrypt from "bcryptjs";
-
 // One-time seed endpoint — protected by a secret token.
 // Call once after deploy: GET /api/seed?token=YOUR_SEED_SECRET
 // Add SEED_SECRET to your Vercel environment variables.
@@ -18,30 +16,21 @@ export async function GET(req: NextRequest) {
 
   await connectDB();
 
-  // Check if already seeded
-  const existingUsers = await User.countDocuments();
-  if (existingUsers > 0) {
-    return NextResponse.json({ message: "Already seeded. Pass ?reset=true to re-seed.", count: existingUsers });
-  }
+  // Always reset so we can re-seed cleanly
+  await Promise.all([
+    User.deleteMany({}),
+    Room.deleteMany({}),
+    Client.deleteMany({}),
+    Product.deleteMany({}),
+  ]);
 
-  const reset = req.nextUrl.searchParams.get("reset") === "true";
-  if (reset) {
-    await Promise.all([
-      User.deleteMany({}),
-      Room.deleteMany({}),
-      Client.deleteMany({}),
-      Product.deleteMany({}),
-    ]);
-  }
-
-  const hash = (pw: string) => bcrypt.hash(pw, 10);
-
+  // Do NOT pre-hash passwords — the User model pre('save') hook handles hashing automatically
   await User.create([
-    { name: "Artan Koci", email: "manager@hotel.com", password: await hash("password123"), role: "hotel_manager" },
-    { name: "Blerina Hoxha", email: "restaurant@hotel.com", password: await hash("password123"), role: "restaurant_manager" },
-    { name: "Drita Gjoka", email: "receptionist@hotel.com", password: await hash("password123"), role: "receptionist" },
-    { name: "Erjon Mema", email: "waiter@hotel.com", password: await hash("password123"), role: "waiter" },
-    { name: "Fatmira Leka", email: "waiter2@hotel.com", password: await hash("password123"), role: "waiter" },
+    { name: "Artan Koci", email: "manager@hotel.com", password: "password123", role: "hotel_manager" },
+    { name: "Blerina Hoxha", email: "restaurant@hotel.com", password: "password123", role: "restaurant_manager" },
+    { name: "Drita Gjoka", email: "receptionist@hotel.com", password: "password123", role: "receptionist" },
+    { name: "Erjon Mema", email: "waiter@hotel.com", password: "password123", role: "waiter" },
+    { name: "Fatmira Leka", email: "waiter2@hotel.com", password: "password123", role: "waiter" },
   ]);
 
   await Room.create([
